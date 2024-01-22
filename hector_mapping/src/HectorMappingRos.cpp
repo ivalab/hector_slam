@@ -59,6 +59,7 @@ HectorMappingRos::HectorMappingRos()
   private_nh_.param("pub_drawings", p_pub_drawings, false);
   private_nh_.param("pub_debug_output", p_pub_debug_output_, false);
   private_nh_.param("pub_map_odom_transform", p_pub_map_odom_transform_,true);
+  private_nh_.param("invert_tf", p_invert_tf_,false);
   private_nh_.param("pub_odometry", p_pub_odometry_,false);
   private_nh_.param("advertise_map_service", p_advertise_map_service_,true);
   private_nh_.param("scan_subscriber_queue_size", p_scan_subscriber_queue_size_, 5);
@@ -78,6 +79,7 @@ HectorMappingRos::HectorMappingRos()
   private_nh_.param("scan_topic", p_scan_topic_, std::string("scan"));
   private_nh_.param("sys_msg_topic", p_sys_msg_topic_, std::string("syscommand"));
   private_nh_.param("pose_update_topic", p_pose_update_topic_, std::string("poseupdate"));
+  private_nh_.param("map_topic", mapTopic_, std::string("map"));
 
   private_nh_.param("use_tf_scan_transformation", p_use_tf_scan_transformation_,true);
   private_nh_.param("use_tf_pose_start_estimate", p_use_tf_pose_start_estimate_,false);
@@ -175,6 +177,7 @@ HectorMappingRos::HectorMappingRos()
   ROS_INFO("HectorSM p_scan_topic_: %s", p_scan_topic_.c_str());
   ROS_INFO("HectorSM p_use_tf_scan_transformation_: %s", p_use_tf_scan_transformation_ ? ("true") : ("false"));
   ROS_INFO("HectorSM p_pub_map_odom_transform_: %s", p_pub_map_odom_transform_ ? ("true") : ("false"));
+  ROS_INFO("HectorSM p_invert_tf_: %s", p_invert_tf_ ? ("true") : ("false"));
   ROS_INFO("HectorSM p_scan_subscriber_queue_size_: %d", p_scan_subscriber_queue_size_);
   ROS_INFO("HectorSM p_map_pub_period_: %f", p_map_pub_period_);
   ROS_INFO("HectorSM p_update_factor_free_: %f", p_update_factor_free_);
@@ -370,7 +373,15 @@ void HectorMappingRos::scanCallback(const sensor_msgs::LaserScan& scan)
       odom_to_base.setIdentity();
     }
     map_to_odom_ = tf::Transform(poseInfoContainer_.getTfTransform() * odom_to_base.inverse());
-    tfB_->sendTransform( tf::StampedTransform (map_to_odom_, scan.header.stamp, p_map_frame_, p_odom_frame_));
+    ros::Time map_to_odom_stamp = scan.header.stamp + ros::Duration(0.5);
+    if (!p_invert_tf_)
+    {
+      tfB_->sendTransform( tf::StampedTransform (map_to_odom_, map_to_odom_stamp, p_map_frame_, p_odom_frame_));
+    }
+    else
+    {
+      tfB_->sendTransform( tf::StampedTransform (map_to_odom_.inverse(), map_to_odom_stamp, p_odom_frame_, p_map_frame_));
+    }
   }
 
   // Publish the transform from map to estimated pose (if enabled)

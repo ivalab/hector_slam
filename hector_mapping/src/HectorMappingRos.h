@@ -177,6 +177,7 @@ protected:
   bool p_pub_drawings;
   bool p_pub_debug_output_;
   bool p_pub_map_odom_transform_;
+  bool p_invert_tf_;
   bool p_pub_odometry_;
   bool p_advertise_map_service_;
   int p_scan_subscriber_queue_size_;
